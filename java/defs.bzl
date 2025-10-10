@@ -15,7 +15,7 @@
 
 load("@com_google_protobuf//bazel:java_lite_proto_library.bzl", _java_lite_proto_library = "java_lite_proto_library")
 load("@com_google_protobuf//bazel:java_proto_library.bzl", _java_proto_library = "java_proto_library")
-load("//java:java_binary.bzl", _java_binary = "java_binary")
+load("@compatibility_proxy//:proxy.bzl", _java_binary = "java_binary")
 load("//java:java_import.bzl", _java_import = "java_import")
 load("//java:java_library.bzl", _java_library = "java_library")
 load("//java:java_plugin.bzl", _java_plugin = "java_plugin")

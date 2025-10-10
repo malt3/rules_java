@@ -16,6 +16,7 @@
 load("@bazel_features//:features.bzl", "bazel_features")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "use_cc_toolchain")
+load("@fsmanifestinfo//fsmanifest:fsmanifestinfo.bzl", "fsmanifest")
 load("//java/common:java_semantics.bzl", "semantics")
 load(
     "//java/common/rules:android_lint.bzl",
@@ -29,7 +30,116 @@ load("//java/common/rules/impl:java_helper.bzl", "helper")
 load("//java/private:java_info.bzl", "JavaInfo")
 
 def _bazel_java_binary_impl(ctx):
-    return bazel_base_binary_impl(ctx, is_test_rule_class = False) + binary_provider_helper.executable_providers(ctx)
+    providers = bazel_base_binary_impl(ctx, is_test_rule_class = False) + binary_provider_helper.executable_providers(ctx)
+
+    # Create FSManifestInfo following rules_docker's approach
+    entries = {}
+
+    # Helper to categorize files - similar to rules_docker's layer separation
+    def categorize_file(file):
+        path = file.short_path
+
+        # JDK/JRE files go into "jdk" category (like rules_docker excludes these)
+        # These typically come from the base image, so we categorize them separately
+        if ("jdk" in path.lower() or
+            "jre" in path.lower() or
+            "java" in path.lower() and "runtime" in path.lower() or
+            path.startswith("external/remotejdk") or
+            path.startswith("external/rules_java") and "toolchains" in path or
+            path.startswith("external/local_jdk")):
+            print("Categorizing JDK/JRE file: {}".format(path))
+            return "jdk"  # Separate category that image builders can ignore/exclude
+
+        # Third-party dependencies (like rules_docker's jar_dep_layer)
+        if path.startswith("external/"):
+            # Maven/Gradle dependencies
+            if ("maven" in path or
+                "m2" in path or
+                "gradle" in path or
+                path.startswith("external/rules_jvm_external")):
+                print("Categorizing third-party dependency: {}".format(path))
+                return "third_party"
+            # Other external deps (not bazel internals)
+            if not path.startswith("external/bazel_tools/"):
+                print("Categorizing third-party dependency: {}".format(path))
+                return "third_party"
+
+        # Application files (like rules_docker's jar_app_layer)
+        print("Categorizing application file: {}".format(path))
+        return "app"
+
+    # Get JavaInfo from providers (which is a list)
+    java_info = None
+    default_info = None
+    for provider in providers:
+        # Check for JavaInfo by checking for its known attributes
+        if hasattr(provider, "transitive_runtime_jars"):
+            java_info = provider
+        # Also get DefaultInfo for data files
+        if hasattr(provider, "files") and hasattr(provider, "data_runfiles"):
+            default_info = provider
+
+    # Process all runtime JARs (similar to rules_docker's java_files function)
+    if java_info and hasattr(java_info, "transitive_runtime_jars"):
+        for jar in java_info.transitive_runtime_jars.to_list():
+            category = categorize_file(jar)
+            entries[jar.path] = fsmanifest.make_entry(
+                src = jar,
+                kind = "file",
+                category = category,
+                mode = "0644",
+            )
+
+    # Add data files if present (similar to rules_docker's java_files_with_data)
+    if default_info and hasattr(default_info, "data_runfiles"):
+        if default_info.data_runfiles:
+            for data_file in default_info.data_runfiles.files.to_list():
+                # Skip if already added (might be in transitive_runtime_jars)
+                if data_file.path not in entries:
+                    category = categorize_file(data_file)
+                    entries[data_file.path] = fsmanifest.make_entry(
+                        src = data_file,
+                        kind = "file",
+                        category = category,
+                        mode = "0644",
+                    )
+
+    # Add the executable wrapper script if it exists
+    if ctx.outputs.executable:
+        entries[ctx.outputs.executable.path] = fsmanifest.make_entry(
+            src = ctx.outputs.executable,
+            kind = "file",
+            category = "app",
+            mode = "0755",
+        )
+
+    # Add main jar (the direct output of this target)
+    if ctx.outputs.classjar:
+        entries[ctx.outputs.classjar.path] = fsmanifest.make_entry(
+            src = ctx.outputs.classjar,
+            kind = "file",
+            category = "app",
+            mode = "0644",
+        )
+
+    # Get main_class for metadata
+    main_class = ctx.attr.main_class if hasattr(ctx.attr, "main_class") else None
+
+    # Create FSManifestInfo provider with additional metadata
+    manifest_info = fsmanifest.create_manifest(
+        entries = entries,
+        labels = {
+            "target": str(ctx.label),
+            "type": "java_binary",
+            "main_class": main_class or "",
+            # Note about categories:
+            # - "jdk": JDK/JRE files that typically come from base image (can be excluded)
+            # - "third_party": External dependencies (jar_dep_layer equivalent)
+            # - "app": Application code and resources (jar_app_layer equivalent)
+        },
+    )
+
+    return providers + [manifest_info]
 
 def bazel_base_binary_impl(ctx, is_test_rule_class):
     """Common implementation for binaries and tests

@@ -75,6 +75,15 @@ bzl_library(
     deps = ["@compatibility_proxy//:proxy_bzl"],
 )
 
+bzl_library(
+    name = "whatgoeswhere",
+    srcs = ["whatgoeswhere.bzl"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//java/private:java_info",
+    ],
+)
+
 filegroup(
     name = "for_bazel_tests",
     testonly = 1,

@@ -11,17 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""java_binary rule"""
+"""Re-export of java_binary from compatibility proxy."""
 
 load("@compatibility_proxy//:proxy.bzl", _java_binary = "java_binary")
 
-def java_binary(**attrs):
-    """Bazel java_binary rule.
-
-    https://docs.bazel.build/versions/master/be/java.html#java_binary
-
-    Args:
-      **attrs: Rule attributes
-    """
-
-    _java_binary(**attrs)
+java_binary = _java_binary
