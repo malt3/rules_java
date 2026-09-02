@@ -23,6 +23,7 @@ load(
 )
 load("//java/common/rules:java_binary.bzl", "BASIC_JAVA_BINARY_ATTRIBUTES")
 load("//java/common/rules:rule_util.bzl", "merge_attrs")
+load("//java/common/rules:runfiles_group_callback_attrs.bzl", "BINARY_RUNFILES_GROUP_CALLBACK_ATTRS")
 load("//java/common/rules/impl:java_binary_deploy_jar.bzl", "create_deploy_archives")
 load("//java/common/rules/impl:java_binary_impl.bzl", "basic_java_binary", "binary_provider_helper")
 load("//java/common/rules/impl:java_helper.bzl", "helper")
@@ -370,6 +371,7 @@ logic as the Java package of source files. For example, a source file at
             executable = True,
         ),
     } if not bazel_features.rules._has_launcher_maker_toolchain else {},
+    BINARY_RUNFILES_GROUP_CALLBACK_ATTRS,
 )
 
 def make_java_binary(executable):

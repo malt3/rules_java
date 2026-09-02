@@ -18,6 +18,8 @@ Definition of java_import rule.
 
 load("//java/common:java_semantics.bzl", "semantics")
 load("//java/common/rules:java_import.bzl", "JAVA_IMPORT_ATTRS")
+load("//java/common/rules:rule_util.bzl", "merge_attrs")
+load("//java/common/rules:runfiles_group_callback_attrs.bzl", "IMPORT_RUNFILES_GROUP_CALLBACK_ATTRS")
 load("//java/common/rules/impl:bazel_java_import_impl.bzl", "bazel_java_import_rule")
 load("//java/private:java_info.bzl", "JavaInfo")
 
@@ -59,7 +61,7 @@ java_import = rule(
 </code>
 </pre>
     """,
-    attrs = JAVA_IMPORT_ATTRS,
+    attrs = merge_attrs(JAVA_IMPORT_ATTRS, IMPORT_RUNFILES_GROUP_CALLBACK_ATTRS),
     provides = [JavaInfo],
     fragments = ["java", "cpp"],
     toolchains = [semantics.JAVA_TOOLCHAIN],

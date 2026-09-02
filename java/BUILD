@@ -1,4 +1,5 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("//java:runfiles_group_support.bzl", "java_binary_runfiles_group_callback", "java_runfiles_group_callback")
 
 package(
     default_applicable_licenses = ["@rules_java//:license"],
@@ -61,6 +62,38 @@ bzl_library(
     visibility = ["//visibility:public"],
 )
 
+bzl_library(
+    name = "runfiles_group_support",
+    srcs = ["runfiles_group_support.bzl"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//java/private:java_info_bzl",
+        "@rules_cc//cc/common",
+        "@rules_runfiles_group//runfiles_group:callback",
+        "@rules_runfiles_group//runfiles_group:lib",
+        "@rules_runfiles_group//runfiles_group:providers",
+    ],
+)
+
+# The callback targets the Java rules point their `_runfiles_group_callback`
+# attribute at. A packaging rule attaches
+# @rules_runfiles_group//runfiles_group:aspect.bzl%runfiles_group_aspect, which
+# reads that attribute and asks the target named here to describe the visited
+# target's runfiles as groups. See //java:runfiles_group_support.bzl.
+java_runfiles_group_callback(
+    name = "runfiles_group_callback_library",
+    rule_family = "library",
+)
+
+java_runfiles_group_callback(
+    name = "runfiles_group_callback_import",
+    rule_family = "import",
+)
+
+java_binary_runfiles_group_callback(
+    name = "runfiles_group_callback_binary",
+)
+
 exports_files(
     ["java_single_jar.bzl"],
     visibility = ["//test:__pkg__"],
@@ -90,6 +123,7 @@ filegroup(
         ":core_rules",
         ":java_single_jar",
         ":rules",
+        ":runfiles_group_support",
         "//java/bazel:for_bazel_tests",  # copybara-use-repo-external-label
         "//java/bazel/rules:for_bazel_tests",  # copybara-use-repo-external-label
         "//java/common:for_bazel_tests",

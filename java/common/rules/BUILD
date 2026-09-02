@@ -32,6 +32,12 @@ bzl_library(
 )
 
 bzl_library(
+    name = "runfiles_group_callback_attrs_bzl",
+    srcs = ["runfiles_group_callback_attrs.bzl"],
+    visibility = ["//java:__subpackages__"],
+)
+
+bzl_library(
     name = "java_single_jar_bzl",
     srcs = ["java_single_jar.bzl"],
     visibility = ["//java:__subpackages__"],
@@ -93,6 +99,7 @@ filegroup(
         "BUILD",
         ":core_rules",
         ":java_single_jar_bzl",
+        ":runfiles_group_callback_attrs_bzl",
         ":toolchain_rules",
         "//java/common/rules/impl:for_bazel_tests",
         "@rules_cc//cc/private/rules_impl:srcs",

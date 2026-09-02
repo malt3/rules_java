@@ -31,6 +31,7 @@ bzl_library(
     deps = [
         "//java/common:semantics_bzl",
         "//java/common/rules:core_rules",
+        "//java/common/rules:runfiles_group_callback_attrs_bzl",
         "//java/common/rules/impl",
         "//java/private:internals",
         "@bazel_skylib//lib:paths",
